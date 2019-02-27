@@ -1,8 +1,31 @@
 import React, { Component } from 'react';
+import { bindActionCreators } from 'redux';
+import authAction from '../../action/authAction'
+import { connect } from 'react-redux';
+import SweetAlert from 'sweetalert-react'
+import 'sweetalert/dist/sweetalert.css'
+
 
 class Register extends Component{
     constructor(){
         super();
+        this.state= {
+            msg: '',
+            showAlert: false
+        }
+    }
+
+    componentWillReceiveProps(newProps){
+        console.log(newProps)
+        if(newProps.auth.msg === 'userExists'){
+            // let the user know they already registered
+            this.setState({
+                showAlert: true
+            })
+        } 
+        else if (newProps.auth.msg === 'userAdded'){
+            this.props.history.push('/')
+        }
     }
 
     registerSubmit = (event)=>{
@@ -11,18 +34,29 @@ class Register extends Component{
         const username = event.target[0].value
         // const username = document.getElementById('email').value;
         const password = event.target[1].value
-        console.log(username)
-        console.log(password)
+        // console.log(username)
+        // console.log(password)
+        this.props.authAction({
+            username: username,
+            password: password
+        })
     }
 
     render(){
+        const msg = this.state.msg
         return(
         <main>
+            <SweetAlert
+               show={this.state.showAlert}
+               title="Registration Error"
+               text="Email is already registered. Login or chooose a different email."
+               onConfirm={() => this.setState({ showAlert: false })}
+           />
             <center>
 
             <div className="container">
                 <div className="z-depth-1 grey lighten-4 row login">
-
+                <h4>{msg}</h4>
                 <form className="col s12" onSubmit={this.registerSubmit}>
                     <div className='row'>
                     <div className='col s12'>
@@ -64,4 +98,22 @@ class Register extends Component{
     }
 }
 
-export default Register;
+function mapStateToProps(state){
+    // state = rootReducer/store
+    return {
+        // key = this.props.KEY will be accessible to this component
+        // value = property of RootReducer
+        auth: state.auth
+    }
+}
+
+function mapDispatchToProps(dispatcher){
+    // dispatch is the thing that sends
+    // the action to all reducers
+    return bindActionCreators({
+        authAction: authAction
+    },dispatcher)
+}
+
+// export default Register;
+export default connect(mapStateToProps, mapDispatchToProps)(Register)

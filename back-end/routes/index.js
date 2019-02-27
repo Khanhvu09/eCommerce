@@ -1,57 +1,71 @@
 var express = require('express');
 var router = express.Router();
 const passport = require('passport');
-const pgp = require('pg-promise')();
+const pgp = require('pg-promise')()
 const config = require('../config');
-const connection  = config.pg;
+const connection = config.pg;  
 const db = pgp(connection);
-
-const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt-nodejs');
+const randToken = require('rand-token');
 
 router.get('/auth/github',passport.authenticate('github'));
 
-router.get('/auth/github/callback',passport.authenticate('github'),(req,res)=>{
-  const selectQuery = `SELECT * FROM users WHERE username = $1`;
-  const pgPromise = db.query(selectQuery,[req.user.username]);
+router.get('/auth/github/callback',passport.authenticate('github'),(req, res)=>{
+  const selectQuery = `SELECT * FROM users`;
+  const pgPromise = db.query(selectQuery);
   // console.log(pgPromise);
   pgPromise.then((data)=>{
-    if(data.length === 0){
-      console.log("Not Found")
-      const insertQuery = `INSERT into users (username) VALUES ($1) returning id`;
-      db.query(insertQuery,[req.user.username]).then((id)=>{
-        const payload = {id, username: req.user.username}
-        const token = jwt.sign(payload, config.jwtSecret, {expiresIn: "1d"});
-        sendToken(res,token);
-      }).catch((error)=>{
-        res.json(error)
+    console.log(data);
+    res.json(data);
+  })
+  // res.json(req.user);
+})
+
+router.post('/register',(req,res)=>{
+  // bcrypt
+  // check if username exist
+  const checkUsernameQuery = `SELECT * FROM users WHERE username = $1`;
+  db.query(checkUsernameQuery,[req.body.username]).then((results)=>{
+    // console.log(results);
+    if(results.length === 0){
+      // user does not exist!!! let's add them
+      const insertUserQuery = `INSERT INTO users (username,password,token) VALUES ($1,$2,$3)`;
+      const token = randToken.uid(50);
+      // use bcrypt.hashSync to make their password something evil
+      const hash = bcrypt.hashSync(req.body.password);
+      db.query(insertUserQuery,[req.body.username,hash,token]).then(()=>{
+        res.json({msg: "userAdded"});
       })
     }else{
-      console.log("Found")
-      const payload = {id: data.id, username: data.username};
-      const token = jwt.sign(payload, config.jwtSecret, {expiresIn: "1d"});
-      console.log(token)
-      sendToken(res, token);
+      // user exists!
+      res.json({msg: "userExists"})
     }
   }).catch((error)=>{
-    res.json(error)
+    if(error){throw error;}
+  });
+
+  // if not, insert -- username, hashed password
+    // -- create a token
+  // if so, let react know
+  // res.json(req.body);
+})
+
+router.post('/login',(req,res)=>{
+  const username = req.body.username;
+  const password = req.body.password;
+  // 1. Get the row with this username from PG
+  const selectUserQuery = `SELECT * FROM users WHERE username = $1`;
+  db.query(selectUserQuery,[username]).then((results)=>{
+    if (results.length === 0){
+      // these arent the droids we're looking for. Goodbye
+      res.json({
+        msg:'badUser'
+      })
+    }
+  }).catch((error)=>{
+    if (error){throw error}
   })
 })
 
-
-function sendToken(res,token){
-  res.send(
-    `
-        <script>
-        window.opener.postMessage(
-            {
-            payload: ${JSON.stringify(token)},
-            status: 'success'
-            },
-            window.opener.location
-        );
-    </script>
-    `
-    )
-}
 
 module.exports = router;
