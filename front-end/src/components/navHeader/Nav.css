@@ -17,6 +17,8 @@
 	border-color: rgba(0,0,0,0.2);
 	background-repeat: no-repeat;
 	background-position: 5px;
+	text-align: right;
+	width: 210px;
 }
 .btn-github:hover{
 	color: rgba(200,200,200,0.5);
