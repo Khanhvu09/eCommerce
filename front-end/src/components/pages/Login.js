@@ -1,24 +1,63 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom'
-import {connect} from 'react-redux'
+import { Link } from 'react-router-dom';
+import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import loginAction from '../../action/loginAction'
+import loginAction from '../../action/loginAction';
+import SweetAlert from 'sweetalert-react';
+import 'sweetalert/dist/sweetalert.css'
 
 class Login extends Component{
-    handleLogin(event){
+    constructor(){
+        super();
+        this.state = {
+            showAlert: false,
+            msg: "",
+        }
+    }
+    componentWillReceiveProps(newProps){
+        console.log(newProps);
+        if(newProps.auth.msg === 'badPassword'){
+            // let the user know they already registered
+            this.setState({
+                showAlert: true,
+                msg: "Please re-enter your password"
+            })
+        }else if(newProps.auth.msg === 'badUser'){
+            this.setState({
+                showAlert: true,
+                msg: "Username not found"
+            })
+        }else if(newProps.auth.msg === 'loginSuccess'){
+            this.props.history.push('/');
+        }
+
+    }
+
+    componentDidMount(){
+        
+    }
+
+    handleLogin = (event)=>{
         event.preventDefault()
         const username = event.target[0].value
         const password = event.target[1].value
         this.props.loginAction({
-            username: username,
-            password: password
+            username,
+            password
         })
     }
+
     render(){
         return(
         <main>
-            <center>
+            <SweetAlert
+                show={this.state.showAlert}
+                title="Login Error"
+                text={this.state.msg}
+                onConfirm={() => this.setState({ showAlert: false })}
+            />            
 
+            <center>
             <div className="container">
                 <div className="z-depth-1 grey lighten-4 row login">
 
@@ -64,8 +103,9 @@ class Login extends Component{
         )
     }
 }
+
 function mapStateToProps(state){
-    return {
+    return{
         auth: state.auth
     }
 }
@@ -75,4 +115,6 @@ function mapDispatchToProps(dispatcher){
         loginAction: loginAction
     },dispatcher)
 }
-export default connect(mapStateToProps,mapDispatchToProps)(Login);
+
+export default connect(mapStateToProps,mapDispatchToProps)(Login)
+// export default Login;

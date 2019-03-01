@@ -1,10 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const passport = require('passport');
-const pgp = require('pg-promise')()
-const config = require('../config');
-const connection = config.pg;  
-const db = pgp(connection);
+const db = require('../database')
 const bcrypt = require('bcrypt-nodejs');
 const randToken = require('rand-token');
 
@@ -61,6 +58,33 @@ router.post('/login',(req,res)=>{
       res.json({
         msg:'badUser'
       })
+    } else {
+      // user exists
+      // now check password
+      const checkHash = bcrypt.compareSync(password, results[0].password)
+      // checkHash is a boolean
+      if (checkHash){
+        // match! Create a new token
+        const token = randToken.uid(50);
+        // update the DB with the new Token
+        const updateTokenQuery = `UPDATE users SET token = $1
+          WHERE username = $2`;
+        db.query(updateTokenQuery,[token,username]).catch((error)=>{
+          if(error){throw error}
+        })
+        res.json({
+          msg:'loginSuccess',
+          token: token,
+          username: username
+        })
+      } else {
+        // bogos password. GOodbye
+        // you don't want to sell me deathsticks
+        // you want to go home and rething your life
+        res.json({
+          msg: 'badPassword'
+        })
+      }
     }
   }).catch((error)=>{
     if (error){throw error}

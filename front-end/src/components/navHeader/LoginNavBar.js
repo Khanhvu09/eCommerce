@@ -4,9 +4,7 @@ import { Link } from 'react-router-dom';
 import {connect} from 'react-redux';
 
 class LoginNavBar extends Component{
-    constructor(){
-        super();
-    }
+    
     githubAuth = (event)=>{
 		// The process:
 		// 1. User clicks and opens the new window via loginTab
@@ -28,7 +26,7 @@ class LoginNavBar extends Component{
     render(){
         let rightNavBar = "";
         if(this.props.auth.username !== undefined){
-            const rightNavBar = <span>Welcome, {this.props.auth.username}</span>
+            rightNavBar = <span>Welcome, {this.props.auth.username}</span>
         }else{
             rightNavBar = <span>
                 <Link to="/login">Sign in</Link> or <Link to="/register">Register</Link>
@@ -38,10 +36,10 @@ class LoginNavBar extends Component{
         console.log(this.props.auth)
         return(
             <div className="login-nav-bar">
-                <div className="left valign-wrapper">WELCOME TO ZAPP GAMES</div>
+                <div className="left valign-wrapper"><Link to ="/">WELCOME TO ZAPP GAMES</Link></div>
                 <div className="right">
-                    
-                    MY CART 0 ITEM - £0.00    
+                    {rightNavBar}
+                    <Link to="/cart">MY CART {this.props.cart.items} - ${this.props.cart.total}</Link>
                 </div>
             </div>
         )
@@ -49,7 +47,8 @@ class LoginNavBar extends Component{
 }
 function mapStateToProps(state){
     return {
-        auth: state.auth
+        auth: state.auth,
+        cart: state.cart
     }
 }
 export default connect(mapStateToProps)(LoginNavBar)
